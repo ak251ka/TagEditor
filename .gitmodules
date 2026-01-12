@@ -1,0 +1,3 @@
+[submodule "vendor/joytag"]
+	path = vendor/joytag
+	url = https://github.com/fpgaminer/joytag.git
