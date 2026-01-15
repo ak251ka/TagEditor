@@ -17,12 +17,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from .batch_controller import BatchController
-
-
-# @dataclass(frozen=True)
-# class ItemRecord:
-#     id : str
-#     image_path: Path
+from typing import List
 
 
 class MainPage(QWidget):
@@ -30,7 +25,6 @@ class MainPage(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
-
         # Left pane
         self.search_edit = QLineEdit()
         self.search_edit.setPlaceholderText('Filter files…')
@@ -122,27 +116,27 @@ class MainPage(QWidget):
         self.remove_dups_btn.clicked.connect(self._ui_remove_dups_only)
         self.undo_btn.clicked.connect(self._ui_undo_only)
         self.save_btn.clicked.connect(self._ui_save_only)
+        # BatchController
         self.batchController = BatchController(self)
         self.batchController.item_found.connect(self.on_item_found)
         self.batchController.status.connect(self.on_status)
+        self.batchController.item_tag.connect(self.on_show_tags)
 
     def load_directory(self, folder: Path) -> None:
         self.file_list.clear()
         self.preview_label.setText('No images found in this folder.')
         self.tags_list.clear()
-        self.batchController.start_folder(folder=folder)
+        self.batchController.start_tasks(folder=folder)
 
     @Slot(str)
     def on_item_found(self, id: str) -> None:
-        prev_row = self.file_list.currentRow()
-        # rec = ItemRecord(id=id, image_path=path)
-
+        current_row = self.file_list.currentRow()
         item = QListWidgetItem(id)
         item.setData(Qt.UserRole, id)
         self.file_list.addItem(item)
 
-        if prev_row >= 0:
-            self.file_list.setCurrentRow(prev_row)
+        if current_row >= 0:
+            self.file_list.setCurrentRow(current_row)
         elif self.file_list.count() > 0:
             self.file_list.setCurrentRow(0)
 
@@ -163,12 +157,10 @@ class MainPage(QWidget):
         if row < 0:
             return
         item = self.file_list.item(row)
-        id = item.data(Qt.UserRole)
-        self._set_info(id=id)
 
-    def _set_info(self, id: str):
-        image = self.batchController.getImage(id)
-        self.show_image(image.path)
+        img = self.batchController.getImage(item.data(Qt.UserRole))
+        self.show_image(img.path)
+        self.show_tags(img.tags)
 
     def show_image(self, path: Path) -> None:
         pix = QPixmap(str(path))
@@ -188,29 +180,26 @@ class MainPage(QWidget):
             # Re-fit current pixmap on resize
             row = self.file_list.currentRow()
             if row >= 0:
-                id: str = self.file_list.item(row).data(Qt.UserRole)
-                self._set_info(id=id)
+                img = self.batchController.getImage(self.file_list.item(row).data(Qt.UserRole))
+                self.show_image(img.path)
+                self.show_tags(img.tags)
+
         return super().eventFilter(obj, event)
 
-    def _show_tags(self, tag_path: Path) -> None:
+    def show_tags(self, tags: List[str]) -> None:
         self.tags_list.clear()
-        if not tag_path.exists():
+        if not tags:
             self.tags_list.addItem('(no tag file)')
             return
-
-        try:
-            content = tag_path.read_text(encoding='utf-8', errors='replace').strip()
-        except Exception:
-            self.tags_list.addItem('(failed to read tag file)')
-            return
-
-        tags = [t.strip() for t in content.split(',') if t.strip()]
-        if not tags:
-            self.tags_list.addItem('(empty)')
-            return
-
         for t in tags:
             self.tags_list.addItem(t)
+
+    @Slot(str)
+    def on_show_tags(self, id: str) -> None:
+        row = self.file_list.currentRow()
+        if row >= 0:
+            img = self.batchController.getImage(self.file_list.item(row).data(Qt.UserRole))
+            self.show_tags(img['tags'])
 
     # UI-only actions (placeholders)
     def _ui_add_tag_only(self) -> None:

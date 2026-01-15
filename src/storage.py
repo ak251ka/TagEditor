@@ -1,6 +1,6 @@
 import json
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 from .imagefile import ImageFile
 
 
@@ -46,3 +46,9 @@ def save_index(data: Dict[str, Any], index_path: Path) -> None:
         f.flush()
 
     tmp.replace(index_path)
+
+
+def load_top_tags(model_dir: Path) -> List[str]:
+    tags_path = model_dir / 'top_tags.txt'
+    with tags_path.open('r', encoding='utf-8') as f:
+        return [line.strip() for line in f.readlines() if line.strip()]

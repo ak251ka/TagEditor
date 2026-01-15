@@ -26,3 +26,4 @@ class Fileds(StrEnum):
 
 class WorkerName(StrEnum):
     Scan_Worker = 'ScanWorker'
+    AIWorker = 'AIWorker'

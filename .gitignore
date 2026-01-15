@@ -209,3 +209,9 @@ __marimo__/
 
 # models
 models/
+
+# vscode
+.vscode/
+
+# Vendor
+vendor/
